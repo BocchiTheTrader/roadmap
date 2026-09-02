@@ -7,7 +7,7 @@
 
 A modern, zero-dependency, single-file client-side curriculum and goal tracking application originally designed by **BocchiTheTrader**. It requires no compilers, package managers, or Node.js setup. Run it directly via **GitHub Pages** or by simply double-clicking the `index.html` file.
 
-*v1.5 Update:* **Animated GIF Support!** You can now upload GIFs for your profile picture. Regular images are auto-compressed via Canvas, while GIFs bypass compression to retain animation (capped at 2MB to protect LocalStorage health).
+<img width="1917" height="1079" alt="Screenshot 2026-09-03 000207" src="https://github.com/user-attachments/assets/0f740e92-5bd5-40f3-97b0-c9f17123bc38" />
 
 ## ✨ Features
 
