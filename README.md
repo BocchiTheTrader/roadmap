@@ -25,11 +25,7 @@ A modern, zero-dependency, single-file client-side curriculum and goal tracking 
 Setting up this project takes less than a minute:
 
 1. Clone or download the repository to your computer:
-   ```bash
-   git clone [https://github.com/YOUR_USERNAME/bocchi-curriculum-tracker.git](https://github.com/YOUR_USERNAME/bocchi-curriculum-tracker.git)
-   Double-click the index.html file inside the folder and open it in your favorite browser.
-
-Optional: Host it for free by enabling GitHub pages in your repo settings.
+   
 
 🛠️ Architecture Details & Technologies
 This application pulls external libraries securely via HTTPS CDNs, preventing local file breakage.
