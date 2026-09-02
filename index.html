@@ -1,0 +1,772 @@
+<!--
+======================================================================================
+  Brand     : BocchiTheTrader | EdTech & Open Source Labs
+  App       : Dynamic Curriculum & Roadmap Tracker (v1.5 - GIF Support)
+  Stack     : HTML5 / Tailwind CSS (CDN) / Vanilla JS (ES6+)
+  Deploy    : 100% GitHub Pages Ready (Zero Build Step)
+======================================================================================
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BocchiTheTrader | Curriculum Tracker</title>
+    
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind CSS (CDN) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        zinc: {
+                            800: '#27272a',
+                            900: '#18181b',
+                            950: '#09090b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Lucide Icons (CDN) -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body {
+            background-color: #09090b;
+            color: #f4f4f5;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #09090b;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #27272a;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3f3f46;
+        }
+        .strikethrough {
+            text-decoration: line-through;
+            color: #71717a;
+            transition: all 0.3s ease;
+        }
+        .editable-input {
+            background: transparent;
+            border: 1px solid #3f3f46;
+            outline: none;
+            padding: 2px 6px;
+            border-radius: 4px;
+            width: 100%;
+            color: #f4f4f5;
+        }
+        .topic-enter {
+            animation: slideIn 0.3s ease-out forwards;
+        }
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body class="h-screen flex overflow-hidden selection:bg-zinc-700">
+
+    <!-- Sidebar -->
+    <aside class="w-72 bg-zinc-900 border-r border-zinc-800 flex flex-col h-full flex-shrink-0">
+        <!-- Editable Logo & Brand Area -->
+        <div onclick="openProfileModal()" class="p-6 border-b border-zinc-800 flex items-center gap-3 cursor-pointer hover:bg-zinc-800/50 transition-colors group" title="Edit Profile">
+            <div id="brand-logo-container" class="w-10 h-10 rounded-lg bg-zinc-100 text-zinc-950 flex items-center justify-center font-bold text-xl shadow-[0_0_15px_rgba(255,255,255,0.1)] relative overflow-hidden flex-shrink-0">
+                <!-- Injected via JS -->
+            </div>
+            <div class="min-w-0">
+                <h1 id="brand-name-display" class="font-bold text-lg tracking-tight truncate">BocchiTheTrader</h1>
+                <p class="text-xs text-zinc-400 font-medium">Curriculum Tracker</p>
+            </div>
+        </div>
+
+        <!-- Subject List -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-2" id="subject-list">
+            <!-- Subjects will be injected here via JS -->
+        </div>
+
+        <!-- Add Subject -->
+        <div class="p-4 border-t border-zinc-800">
+            <form id="add-subject-form" class="flex gap-2">
+                <input type="text" id="new-subject-input" placeholder="Add new subject..." class="flex-1 bg-zinc-950 border border-zinc-800 rounded-md px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-500 transition-colors">
+                <button type="submit" class="bg-zinc-100 text-zinc-950 p-2 rounded-md hover:bg-zinc-300 transition-colors" title="Add Subject">
+                    <i data-lucide="plus" class="w-5 h-5"></i>
+                </button>
+            </form>
+        </div>
+
+        <!-- Data Portability -->
+        <div class="p-4 bg-zinc-950/50 flex gap-2 justify-between border-t border-zinc-800">
+            <button onclick="exportData()" class="flex-1 flex items-center justify-center gap-2 text-xs font-medium text-zinc-400 hover:text-zinc-100 transition-colors p-2 rounded-md hover:bg-zinc-800">
+                <i data-lucide="download" class="w-4 h-4"></i> Export
+            </button>
+            <label class="flex-1 flex items-center justify-center gap-2 text-xs font-medium text-zinc-400 hover:text-zinc-100 transition-colors p-2 rounded-md hover:bg-zinc-800 cursor-pointer">
+                <i data-lucide="upload" class="w-4 h-4"></i> Import
+                <input type="file" id="import-file" class="hidden" accept=".json" onchange="importData(event)">
+            </label>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 flex flex-col h-full bg-zinc-950 relative">
+        <div id="empty-state" class="hidden absolute inset-0 flex flex-col items-center justify-center text-zinc-500">
+            <i data-lucide="layout-dashboard" class="w-16 h-16 mb-4 opacity-50"></i>
+            <p class="text-lg">No subject selected.</p>
+            <p class="text-sm">Select a subject from the sidebar or create a new one.</p>
+        </div>
+
+        <div id="main-content" class="flex-1 flex flex-col hidden h-full overflow-hidden">
+            <!-- Header & Telemetry -->
+            <header class="p-8 pb-6 border-b border-zinc-800/50 bg-gradient-to-b from-zinc-900 to-zinc-950">
+                <div class="flex justify-between items-start mb-6">
+                    <div>
+                        <h2 id="active-subject-title" class="text-3xl font-bold text-zinc-100 tracking-tight mb-2">Subject Title</h2>
+                        <span id="active-subject-stats" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-zinc-800/50 text-xs font-medium text-zinc-300 border border-zinc-700/50">
+                            <i data-lucide="target" class="w-3.5 h-3.5"></i> Completed: 0 / 0 Topics
+                        </span>
+                    </div>
+                    <button onclick="deleteActiveSubject()" class="text-zinc-500 hover:text-red-400 p-2 rounded-md hover:bg-red-400/10 transition-colors group">
+                        <i data-lucide="trash-2" class="w-5 h-5 group-hover:scale-110 transition-transform"></i>
+                    </button>
+                </div>
+
+                <!-- Progress Bar -->
+                <div class="w-full">
+                    <div class="flex justify-between text-xs font-semibold text-zinc-400 mb-2">
+                        <span>Topic Progress</span>
+                        <span id="progress-percentage">0%</span>
+                    </div>
+                    <div class="h-2 w-full bg-zinc-800 rounded-full overflow-hidden">
+                        <div id="progress-bar-fill" class="h-full bg-zinc-100 rounded-full transition-all duration-500 ease-out" style="width: 0%; box-shadow: 0 0 10px rgba(255,255,255,0.2);"></div>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Topic Add Input -->
+            <div class="px-8 py-6">
+                <form id="add-topic-form" class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                        <i data-lucide="list-plus" class="w-5 h-5 text-zinc-500"></i>
+                    </div>
+                    <input type="text" id="new-topic-input" placeholder="Add a new topic (Press Enter)..." class="w-full bg-zinc-900/50 border border-zinc-800 rounded-lg pl-12 pr-4 py-3.5 text-zinc-100 placeholder-zinc-500 focus:outline-none focus:border-zinc-600 focus:ring-1 focus:ring-zinc-600 transition-all shadow-sm">
+                </form>
+            </div>
+
+            <!-- Topic List -->
+            <div class="flex-1 overflow-y-auto px-8 pb-8">
+                <ul id="topic-list" class="space-y-3">
+                    <!-- Topics will be injected here -->
+                </ul>
+            </div>
+        </div>
+    </main>
+
+    <!-- Profile Settings Modal -->
+    <div id="profile-modal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center">
+        <div class="bg-zinc-900 border border-zinc-800 rounded-xl p-6 w-96 shadow-2xl transform transition-all">
+            <div class="flex justify-between items-center mb-5">
+                <h3 class="text-lg font-bold text-zinc-100">Edit Profile</h3>
+                <button onclick="closeProfileModal()" class="text-zinc-500 hover:text-zinc-300">
+                    <i data-lucide="x" class="w-5 h-5"></i>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-medium text-zinc-400 mb-1.5">Brand / Name</label>
+                    <input type="text" id="edit-brand-name" class="w-full bg-zinc-950 border border-zinc-700 rounded-md px-3 py-2 text-sm text-zinc-100 focus:border-zinc-500 focus:outline-none">
+                </div>
+                
+                <div>
+                    <label class="block text-xs font-medium text-zinc-400 mb-1.5">Profile Photo or GIF (Drag & Drop or Click)</label>
+                    
+                    <!-- Drag & Drop Zone -->
+                    <div id="drop-zone" class="w-full h-32 border-2 border-dashed border-zinc-700 rounded-md flex flex-col items-center justify-center text-zinc-500 hover:border-zinc-500 hover:text-zinc-300 bg-zinc-950/50 transition-colors cursor-pointer relative overflow-hidden">
+                        <input type="file" id="file-input" class="hidden" accept="image/png, image/jpeg, image/webp, image/gif">
+                        
+                        <div id="drop-zone-text" class="flex flex-col items-center pointer-events-none transition-opacity">
+                           <i data-lucide="image-plus" class="w-6 h-6 mb-2"></i>
+                           <span class="text-xs">Select or drop image/GIF</span>
+                        </div>
+                        
+                        <img id="image-preview" class="hidden absolute inset-0 w-full h-full object-cover">
+                        
+                        <!-- Inner overlay on hover for preview -->
+                        <div id="drop-zone-overlay" class="hidden absolute inset-0 bg-black/50 items-center justify-center text-white pointer-events-none transition-opacity">
+                            <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                        </div>
+                    </div>
+
+                    <div class="flex justify-between items-center mt-2">
+                        <p class="text-[10px] text-zinc-500 leading-tight">Photos are auto-resized.<br>GIFs max size: 2MB.</p>
+                        <button onclick="removeProfileImage()" class="text-[10px] text-red-400 hover:text-red-300 hidden" id="remove-image-btn">Remove Photo</button>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-zinc-800">
+                <button onclick="closeProfileModal()" class="px-4 py-2 text-sm font-medium text-zinc-400 hover:text-zinc-100 transition-colors">Cancel</button>
+                <button onclick="saveProfile()" class="px-4 py-2 bg-zinc-100 text-zinc-900 rounded-md text-sm font-semibold hover:bg-zinc-300 transition-colors">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- State Engine & Application Logic -->
+    <script>
+        const STORAGE_KEY = 'bocchi_curriculum_data';
+        
+        const defaultData = {
+            profile: {
+                name: "BocchiTheTrader",
+                logoUrl: "" // Will hold Base64 data now
+            },
+            activeSubjectId: "sub_1",
+            subjects: [
+                {
+                    id: "sub_1",
+                    name: "Pine Script & MQL5",
+                    icon: "terminal",
+                    topics: [
+                        { 
+                            id: "top_6", 
+                            title: "TradingView Webhook Integration", 
+                            completed: true, 
+                            order: 1,
+                            subtopics: [
+                                { id: "sub_1", title: "Local server setup with Flask", completed: true },
+                                { id: "sub_2", title: "JSON payload parsing operations", completed: true }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        };
+
+        let appData = {};
+        let tempBase64Image = null; // Holds the image temporarily while modal is open
+
+        const DOM = {
+            subjectList: document.getElementById('subject-list'),
+            addSubjectForm: document.getElementById('add-subject-form'),
+            newSubjectInput: document.getElementById('new-subject-input'),
+            emptyState: document.getElementById('empty-state'),
+            mainContent: document.getElementById('main-content'),
+            activeSubjectTitle: document.getElementById('active-subject-title'),
+            activeSubjectStats: document.getElementById('active-subject-stats'),
+            progressPercentage: document.getElementById('progress-percentage'),
+            progressBarFill: document.getElementById('progress-bar-fill'),
+            addTopicForm: document.getElementById('add-topic-form'),
+            newTopicInput: document.getElementById('new-topic-input'),
+            topicList: document.getElementById('topic-list')
+        };
+
+        function init() {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                try {
+                    appData = JSON.parse(stored);
+                } catch (e) {
+                    appData = defaultData;
+                }
+            } else {
+                appData = defaultData;
+            }
+
+            if (!appData.profile) {
+                appData.profile = { name: "BocchiTheTrader", logoUrl: "" };
+            }
+
+            bindEvents();
+            initDragAndDrop();
+            render();
+        }
+
+        function saveData() {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
+            render();
+        }
+
+        function generateId(prefix) {
+            return prefix + '_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        // --- Render Logic ---
+        function render() {
+            renderProfile();
+            renderSidebar();
+            renderMain();
+            lucide.createIcons();
+        }
+
+        function renderProfile() {
+            const profile = appData.profile;
+            const displayName = profile.name || "BocchiTheTrader";
+            
+            // Update Sidebar Text
+            document.getElementById('brand-name-display').textContent = displayName;
+            
+            // Update Browser Tab/Title dynamically
+            document.title = `${displayName} | Curriculum Tracker`;
+            
+            const logoContainer = document.getElementById('brand-logo-container');
+            const hoverOverlay = `
+                <div class="absolute inset-0 bg-black/60 hidden group-hover:flex items-center justify-center text-zinc-100 transition-all">
+                    <i data-lucide="edit-2" class="w-4 h-4"></i>
+                </div>
+            `;
+
+            if (profile.logoUrl && profile.logoUrl.trim() !== "") {
+                logoContainer.innerHTML = `
+                    <img src="${profile.logoUrl}" alt="Profile" class="w-full h-full object-cover">
+                    ${hoverOverlay}
+                `;
+            } else {
+                logoContainer.innerHTML = `
+                    <i data-lucide="code-2"></i>
+                    ${hoverOverlay}
+                `;
+            }
+        }
+
+        function renderSidebar() {
+            DOM.subjectList.innerHTML = '';
+            appData.subjects.forEach(subject => {
+                const total = subject.topics.length;
+                const completed = subject.topics.filter(t => t.completed).length;
+                const isActive = subject.id === appData.activeSubjectId;
+                
+                const btn = document.createElement('button');
+                btn.className = `w-full flex items-center justify-between p-3 rounded-lg transition-all ${isActive ? 'bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700/50' : 'text-zinc-400 hover:bg-zinc-800/50 hover:text-zinc-200 border border-transparent'}`;
+                btn.onclick = () => {
+                    appData.activeSubjectId = subject.id;
+                    saveData();
+                };
+                
+                btn.innerHTML = `
+                    <div class="flex items-center gap-3 truncate">
+                        <i data-lucide="${subject.icon || 'book-open'}" class="w-4 h-4 flex-shrink-0 ${isActive ? 'text-zinc-100' : 'text-zinc-500'}"></i>
+                        <span class="font-medium text-sm truncate">${subject.name}</span>
+                    </div>
+                    ${total > 0 ? `<span class="text-[10px] px-1.5 py-0.5 rounded-md ${isActive ? 'bg-zinc-950 text-zinc-300' : 'bg-zinc-800 text-zinc-500'} font-medium">${completed}/${total}</span>` : ''}
+                `;
+                DOM.subjectList.appendChild(btn);
+            });
+        }
+
+        function renderMain() {
+            const activeSub = appData.subjects.find(s => s.id === appData.activeSubjectId);
+            
+            if (!activeSub) {
+                DOM.mainContent.classList.add('hidden');
+                DOM.emptyState.classList.remove('hidden');
+                return;
+            }
+
+            DOM.emptyState.classList.add('hidden');
+            DOM.mainContent.classList.remove('hidden');
+
+            DOM.activeSubjectTitle.textContent = activeSub.name;
+            const total = activeSub.topics.length;
+            const completed = activeSub.topics.filter(t => t.completed).length;
+            const percentage = total === 0 ? 0 : Math.round((completed / total) * 100);
+
+            DOM.activeSubjectStats.innerHTML = `<i data-lucide="target" class="w-3.5 h-3.5"></i> Completed: ${completed} / ${total} Topics`;
+            DOM.progressPercentage.textContent = `${percentage}%`;
+            DOM.progressBarFill.style.width = `${percentage}%`;
+
+            DOM.topicList.innerHTML = '';
+            activeSub.topics.sort((a, b) => a.order - b.order);
+
+            activeSub.topics.forEach((topic, index) => {
+                if (!topic.subtopics) topic.subtopics = [];
+                const li = document.createElement('li');
+                li.className = `topic-enter group flex flex-col p-3 rounded-lg border border-zinc-800/60 transition-all ${topic.completed ? 'bg-zinc-900/30' : 'bg-zinc-900 hover:border-zinc-700'}`;
+                
+                li.innerHTML = `
+                    <div class="flex items-center justify-between w-full">
+                        <div class="flex items-center gap-4 flex-1 overflow-hidden">
+                            <button onclick="toggleTopic('${topic.id}')" class="text-zinc-500 hover:text-zinc-100 focus:outline-none transition-colors flex-shrink-0">
+                                <i data-lucide="${topic.completed ? 'check-square' : 'square'}" class="w-5 h-5 ${topic.completed ? 'text-zinc-100' : ''}"></i>
+                            </button>
+                            <div class="flex-1 truncate">
+                                <span id="text-${topic.id}" class="text-sm font-medium select-none cursor-pointer ${topic.completed ? 'strikethrough' : 'text-zinc-200'}" ondblclick="editTopic('${topic.id}')">${topic.title}</span>
+                                <input type="text" id="input-${topic.id}" class="hidden editable-input text-sm" value="${topic.title}" onblur="saveTopicEdit('${topic.id}')" onkeydown="handleEditKey(event, '${topic.id}')">
+                            </div>
+                        </div>
+                        
+                        <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <button onclick="toggleSubtopicInput('${topic.id}')" class="p-1.5 text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800 rounded-md" title="Add Subtopic">
+                                <i data-lucide="corner-down-right" class="w-4 h-4"></i>
+                            </button>
+                            <div class="w-px h-4 bg-zinc-800 mx-1"></div>
+                            <button onclick="moveTopic('${topic.id}', -1)" class="p-1.5 text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800 rounded-md disabled:opacity-30 disabled:hover:bg-transparent" ${index === 0 ? 'disabled' : ''}>
+                                <i data-lucide="arrow-up" class="w-4 h-4"></i>
+                            </button>
+                            <button onclick="moveTopic('${topic.id}', 1)" class="p-1.5 text-zinc-500 hover:text-zinc-100 hover:bg-zinc-800 rounded-md disabled:opacity-30 disabled:hover:bg-transparent" ${index === activeSub.topics.length - 1 ? 'disabled' : ''}>
+                                <i data-lucide="arrow-down" class="w-4 h-4"></i>
+                            </button>
+                            <div class="w-px h-4 bg-zinc-800 mx-1"></div>
+                            <button onclick="deleteTopic('${topic.id}')" class="p-1.5 text-zinc-500 hover:text-red-400 hover:bg-red-400/10 rounded-md">
+                                <i data-lucide="x" class="w-4 h-4"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="sub-input-container-${topic.id}" class="hidden w-full mt-3 pl-9 pr-2">
+                        <input type="text" placeholder="Subtopic title (Enter to save, Esc to cancel)..." class="w-full bg-zinc-950/80 border border-zinc-700/50 rounded-md px-3 py-1.5 text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-zinc-500 transition-colors" onkeydown="handleSubtopicKey(event, '${topic.id}')" onblur="hideSubtopicInput('${topic.id}')">
+                    </div>
+
+                    ${topic.subtopics.length > 0 ? `
+                    <ul class="w-full mt-2 pl-9 pr-2 space-y-1">
+                        ${topic.subtopics.map(sub => `
+                            <li class="flex items-center justify-between group/sub py-1.5 px-2 rounded-md hover:bg-zinc-800/40 transition-colors">
+                                <div class="flex items-center gap-2.5 flex-1 overflow-hidden">
+                                    <button onclick="toggleSubtopic('${topic.id}', '${sub.id}')" class="text-zinc-600 hover:text-zinc-300 focus:outline-none transition-colors flex-shrink-0">
+                                        <i data-lucide="${sub.completed ? 'check-square' : 'square'}" class="w-3.5 h-3.5 ${sub.completed ? 'text-zinc-400' : ''}"></i>
+                                    </button>
+                                    <span class="text-[13px] font-medium truncate ${sub.completed ? 'strikethrough text-zinc-600' : 'text-zinc-400'}">
+                                        ${sub.title}
+                                    </span>
+                                </div>
+                                <button onclick="deleteSubtopic('${topic.id}', '${sub.id}')" class="p-1 text-zinc-600 hover:text-red-400 hover:bg-red-400/10 rounded-md opacity-0 group-hover/sub:opacity-100 transition-all">
+                                    <i data-lucide="x" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </li>
+                        `).join('')}
+                    </ul>
+                    ` : ''}
+                `;
+                DOM.topicList.appendChild(li);
+            });
+        }
+
+        // --- Profile & Drag-Drop Handling (GIF Support added) ---
+        function initDragAndDrop() {
+            const dropZone = document.getElementById('drop-zone');
+            const fileInput = document.getElementById('file-input');
+
+            // Hover styles for drop zone
+            dropZone.addEventListener('mouseenter', () => {
+                if(tempBase64Image) document.getElementById('drop-zone-overlay').classList.remove('hidden');
+                document.getElementById('drop-zone-overlay').classList.add('flex');
+            });
+            dropZone.addEventListener('mouseleave', () => {
+                document.getElementById('drop-zone-overlay').classList.add('hidden');
+                document.getElementById('drop-zone-overlay').classList.remove('flex');
+            });
+
+            dropZone.addEventListener('click', () => fileInput.click());
+            
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('border-zinc-400', 'bg-zinc-800');
+            });
+            
+            dropZone.addEventListener('dragleave', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-zinc-400', 'bg-zinc-800');
+            });
+            
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('border-zinc-400', 'bg-zinc-800');
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    processImageFile(e.dataTransfer.files[0]);
+                }
+            });
+            
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files.length > 0) {
+                    processImageFile(e.target.files[0]);
+                }
+                e.target.value = ''; // Reset so same file can be selected again
+            });
+        }
+
+        function processImageFile(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('Please upload a valid image file.');
+                return;
+            }
+
+            // GIF Handling: Bypass Canvas to preserve animation
+            if (file.type === 'image/gif') {
+                const MAX_GIF_SIZE = 2 * 1024 * 1024; // 2MB limit for LocalStorage safety
+                if (file.size > MAX_GIF_SIZE) {
+                    alert('GIF file is too large! Please upload a GIF under 2MB to prevent browser storage crashes.');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    tempBase64Image = e.target.result; // Save raw Base64 GIF
+                    updateImagePreviewUI();
+                };
+                reader.readAsDataURL(file);
+                return; 
+            }
+
+            // Standard Image Handling (Crop & Compress via Canvas)
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const MAX_SIZE = 250; 
+                    
+                    let size = Math.min(img.width, img.height);
+                    let sx = (img.width - size) / 2;
+                    let sy = (img.height - size) / 2;
+
+                    canvas.width = MAX_SIZE;
+                    canvas.height = MAX_SIZE;
+                    const ctx = canvas.getContext('2d');
+                    
+                    ctx.drawImage(img, sx, sy, size, size, 0, 0, MAX_SIZE, MAX_SIZE);
+                    
+                    tempBase64Image = canvas.toDataURL('image/webp', 0.8);
+                    updateImagePreviewUI();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function updateImagePreviewUI() {
+            const preview = document.getElementById('image-preview');
+            const text = document.getElementById('drop-zone-text');
+            const removeBtn = document.getElementById('remove-image-btn');
+            
+            if (tempBase64Image) {
+                preview.src = tempBase64Image;
+                preview.classList.remove('hidden');
+                text.classList.add('opacity-0');
+                removeBtn.classList.remove('hidden');
+            } else {
+                preview.src = '';
+                preview.classList.add('hidden');
+                text.classList.remove('opacity-0');
+                removeBtn.classList.add('hidden');
+            }
+        }
+
+        window.openProfileModal = () => {
+            const profile = appData.profile;
+            document.getElementById('edit-brand-name').value = profile.name;
+            tempBase64Image = profile.logoUrl || null;
+            updateImagePreviewUI();
+            document.getElementById('profile-modal').classList.remove('hidden');
+        };
+
+        window.closeProfileModal = () => {
+            document.getElementById('profile-modal').classList.add('hidden');
+        };
+
+        window.removeProfileImage = () => {
+            tempBase64Image = null;
+            updateImagePreviewUI();
+        };
+
+        window.saveProfile = () => {
+            const newName = document.getElementById('edit-brand-name').value.trim();
+            appData.profile.name = newName || "BocchiTheTrader";
+            appData.profile.logoUrl = tempBase64Image || "";
+            saveData();
+            closeProfileModal();
+        };
+
+        // --- Core Operations (Events & Topic Logic) ---
+        function bindEvents() {
+            DOM.addSubjectForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const name = DOM.newSubjectInput.value.trim();
+                if (name) {
+                    const newSub = { id: generateId('sub'), name: name, icon: 'book-open', topics: [] };
+                    appData.subjects.push(newSub);
+                    appData.activeSubjectId = newSub.id;
+                    DOM.newSubjectInput.value = '';
+                    saveData();
+                }
+            });
+
+            DOM.addTopicForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                if (!appData.activeSubjectId) return;
+                const title = DOM.newTopicInput.value.trim();
+                if (title) {
+                    const activeSub = appData.subjects.find(s => s.id === appData.activeSubjectId);
+                    const newOrder = activeSub.topics.length > 0 ? Math.max(...activeSub.topics.map(t => t.order)) + 1 : 1;
+                    
+                    activeSub.topics.push({
+                        id: generateId('top'), title: title, completed: false, order: newOrder, subtopics: []
+                    });
+                    DOM.newTopicInput.value = '';
+                    saveData();
+                }
+            });
+        }
+
+        window.toggleTopic = (topicId) => {
+            const activeSub = appData.subjects.find(s => s.id === appData.activeSubjectId);
+            const topic = activeSub.topics.find(t => t.id === topicId);
+            if (topic) { topic.completed = !topic.completed; saveData(); }
+        };
+
+        window.deleteTopic = (topicId) => {
+            const activeSub = appData.subjects.find(s => s.id === appData.activeSubjectId);
+            activeSub.topics = activeSub.topics.filter(t => t.id !== topicId);
+            saveData();
+        };
+
+        window.moveTopic = (topicId, direction) => {
+            const activeSub = appData.subjects.find(s => s.id === appData.activeSubjectId);
+            const currentIndex = activeSub.topics.findIndex(t => t.id === topicId);
+            if (currentIndex === -1) return;
+            const newIndex = currentIndex + direction;
+            if (newIndex >= 0 && newIndex < activeSub.topics.length) {
+                const currentOrder = activeSub.topics[currentIndex].order;
+                activeSub.topics[currentIndex].order = activeSub.topics[newIndex].order;
+                activeSub.topics[newIndex].order = currentOrder;
+                saveData();
+            }
+        };
+
+        window.editTopic = (topicId) => {
+            const span = document.getElementById(`text-${topicId}`);
+            const input = document.getElementById(`input-${topicId}`);
+            span.classList.add('hidden'); input.classList.remove('hidden'); input.focus();
+            const val = input.value; input.value = ''; input.value = val;
+        };
+
+        window.saveTopicEdit = (topicId) => {
+            const span = document.getElementById(`text-${topicId}`);
+            const input = document.getElementById(`input-${topicId}`);
+            const newTitle = input.value.trim();
+            if (newTitle) {
+                const activeSub = appData.subjects.find(s => s.id === appData.activeSubjectId);
+                const topic = activeSub.topics.find(t => t.id === topicId);
+                if (topic) { topic.title = newTitle; saveData(); }
+            } else {
+                span.classList.remove('hidden'); input.classList.add('hidden');
+            }
+        };
+
+        window.handleEditKey = (e, topicId) => {
+            if (e.key === 'Enter') { e.preventDefault(); saveTopicEdit(topicId); }
+            else if (e.key === 'Escape') {
+                const span = document.getElementById(`text-${topicId}`);
+                const input = document.getElementById(`input-${topicId}`);
+                span.classList.remove('hidden'); input.classList.add('hidden');
+                input.value = span.textContent;
+            }
+        };
+
+        window.deleteActiveSubject = () => {
+            if (confirm('Are you sure you want to delete this subject and all its topics?')) {
+                appData.subjects = appData.subjects.filter(s => s.id !== appData.activeSubjectId);
+                appData.activeSubjectId = appData.subjects.length > 0 ? appData.subjects[0].id : null;
+                saveData();
+            }
+        };
+
+        window.toggleSubtopicInput = (topicId) => {
+            const container = document.getElementById(`sub-input-container-${topicId}`);
+            const input = container.querySelector('input');
+            container.classList.remove('hidden'); input.focus();
+        };
+
+        window.hideSubtopicInput = (topicId) => {
+            const container = document.getElementById(`sub-input-container-${topicId}`);
+            const input = container.querySelector('input');
+            setTimeout(() => { input.value = ''; container.classList.add('hidden'); }, 150);
+        };
+
+        window.handleSubtopicKey = (e, topicId) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const title = e.target.value.trim();
+                if (title) {
+                    const activeSub = appData.subjects.find(s => s.id === appData.activeSubjectId);
+                    const topic = activeSub.topics.find(t => t.id === topicId);
+                    if (!topic.subtopics) topic.subtopics = [];
+                    topic.subtopics.push({ id: generateId('sub'), title: title, completed: false });
+                    saveData();
+                }
+            } else if (e.key === 'Escape') { hideSubtopicInput(topicId); }
+        };
+
+        window.toggleSubtopic = (topicId, subId) => {
+            const activeSub = appData.subjects.find(s => s.id === appData.activeSubjectId);
+            const topic = activeSub.topics.find(t => t.id === topicId);
+            if (topic && topic.subtopics) {
+                const sub = topic.subtopics.find(s => s.id === subId);
+                if (sub) { sub.completed = !sub.completed; saveData(); }
+            }
+        };
+
+        window.deleteSubtopic = (topicId, subId) => {
+            const activeSub = appData.subjects.find(s => s.id === appData.activeSubjectId);
+            const topic = activeSub.topics.find(t => t.id === topicId);
+            if (topic && topic.subtopics) {
+                topic.subtopics = topic.subtopics.filter(s => s.id !== subId);
+                saveData();
+            }
+        };
+
+        window.exportData = () => {
+            const dataStr = JSON.stringify(appData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `curriculum_backup_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        };
+
+        window.importData = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const imported = JSON.parse(e.target.result);
+                    if (imported && imported.subjects) {
+                        appData = imported;
+                        saveData();
+                        alert('Curriculum data imported successfully.');
+                    } else { alert('Invalid JSON format.'); }
+                } catch (err) { alert('Error reading file.'); }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        };
+
+        // Start
+        init();
+    </script>
+</body>
+</html>
