@@ -20,12 +20,7 @@ A modern, zero-dependency, single-file client-side curriculum and goal tracking 
 * **Progress Telemetry:** Animated progress bar and "Completed: X / Y Topics" chip showing completion rate per main topic.
 * **Data Portability:** All data is kept in the browser's local storage. Offers `.json` format export and import capabilities.
 
-## 🚀 Quickstart
 
-Setting up this project takes less than a minute:
-
-1. Clone or download the repository to your computer:
-   
 
 🛠️ Architecture Details & Technologies
 This application pulls external libraries securely via HTTPS CDNs, preventing local file breakage.
